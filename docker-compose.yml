@@ -1,0 +1,37 @@
+services:
+  local-traefik:
+    container_name: local-traefik
+    build:
+        context: .
+        dockerfile: Dockerfile
+        args:
+          - TARGETPLATFORM=linux/amd64
+    command:
+      #- "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entryPoints.web.address=:80"
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.traefik.rule: "Host(`localhost`)"
+      traefik.http.routers.traefik.service: "api@internal"
+      #traefik.http.routers.traefik.tls: "true"
+      traefik.http.routers.traefik.entrypoints: "web"
+      #traefik.http.routers.traefik.middlewares: "autodetectContenttype@file"
+      traefik.http.services.traefik.loadbalancer.server.port: "8080"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+  whoami:
+    image: "traefik/whoami"
+    container_name: "simple-service"
+    labels:
+      traefik.enable: true
+      traefik.http.routers.whoami.rule: Host(`localhost`) && PathPrefix(`/whoami`)
+      traefik.http.routers.whoami.middlewares: "testheader"
+      traefik.http.routers.whoami.entrypoints: web
+      traefik.http.middlewares.testheader.headers.contentSecurityPolicy: "style-src 'unsafe-inline' 'self';base-uri 'self' ;script-src 'self' ;form-action 'self' ;frame-src 'self';manifest-src 'self' ;img-src 'self' ;connect-src 'self' ;object-src 'none' ;worker-src 'none' ;script-src-elem 'self';media-src 'self' ;upgrade-insecure-requests ;frame-ancestors 'self' ;default-src 'self' ;font-src 'self';"
